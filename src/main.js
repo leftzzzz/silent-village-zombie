@@ -478,6 +478,15 @@ function loop(now) {
   if (running) renderer.adapt(Math.min(0.2, (now - (loop.lastNow || now)) / 1000));
   loop.lastNow = now;
   renderer.render(dt, game ? game.time : now / 1000);
+  // one-shot self check: a fully black frame means the GPU/driver isn't rendering
+  if (running && !loop.probed && game.time > 3) {
+    loop.probed = true;
+    const px = renderer.probe();
+    if (px && px[0] + px[1] + px[2] < 6 && window.__showFatal) {
+      window.__showFatal(`3D 画面渲染为全黑（像素 ${px.join(',')}）\nGPU: ${renderer.gpuInfo()}\n画质: ${settings.quality} ${renderer.direct ? '直出' : '后期'}\n请打开 ${location.origin}/diag.html 截图反馈`);
+    }
+    console.log('[probe]', px, renderer.gpuInfo());
+  }
 }
 
 boot();

@@ -154,6 +154,25 @@ export class Renderer {
     this.gradePass.uniforms.uRes.value.set(w * pr, h * pr);
   }
 
+  gpuInfo() {
+    try {
+      const gl = this.renderer.getContext();
+      const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+      return dbg ? `${gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL)} / ${gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)}` : gl.getParameter(gl.RENDERER);
+    } catch { return 'unknown'; }
+  }
+
+  // Read back the center pixel of the frame just rendered (default framebuffer).
+  probe() {
+    try {
+      const gl = this.renderer.getContext();
+      const px = new Uint8Array(4);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.readPixels(gl.drawingBufferWidth >> 1, gl.drawingBufferHeight >> 1, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      return [...px];
+    } catch { return null; }
+  }
+
   get direct() {
     const q = QUALITY[this.quality] || QUALITY.high;
     return !!q.direct || !this.floatRT;

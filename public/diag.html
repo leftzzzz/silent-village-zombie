@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>画面诊断</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 14px; background: #1a130d; color: #f3e6d0; font: 14px/1.6 -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+  h1 { font-size: 18px; color: #ffcf6a; margin: 0 0 8px; }
+  .tests { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
+  .t { text-align: center; font-size: 12px; }
+  canvas { width: 120px; height: 90px; border: 1px solid #6a5238; display: block; margin-bottom: 4px; }
+  pre { white-space: pre-wrap; word-break: break-all; background: #0c0906; padding: 10px; border-radius: 6px; font-size: 12px; }
+  button { padding: 8px 14px; border-radius: 6px; border: 1px solid #ffb060; background: #ff9a2a; color: #1a0f06; font-weight: 700; }
+  b.ok { color: #7dff7a; } b.bad { color: #ff6a5a; }
+</style>
+</head>
+<body>
+<h1>新寂静村 · 画面诊断</h1>
+<div>下面 3 个方块你能看到什么颜色？请截图发给开发者。</div>
+<div class="tests">
+  <div class="t"><canvas id="c2d" width="120" height="90"></canvas>① 2D 画布（应为绿色）</div>
+  <div class="t"><canvas id="cgl" width="120" height="90"></canvas>② WebGL 清屏（应为橙色）</div>
+  <div class="t"><canvas id="cgl2" width="120" height="90"></canvas>③ WebGL 动画（转动的三角形）</div>
+</div>
+<button id="copy">复制诊断信息</button>
+<pre id="out">检测中…</pre>
+<script>
+(function () {
+  var info = [];
+  function add(k, v) { info.push(k + ': ' + v); }
+  add('UA', navigator.userAgent);
+  add('屏幕', screen.width + 'x' + screen.height + ' @' + devicePixelRatio + 'x, 视口 ' + innerWidth + 'x' + innerHeight);
+  add('系统深色模式', matchMedia('(prefers-color-scheme: dark)').matches ? '是' : '否');
+  try { var g2 = document.getElementById('c2d').getContext('2d'); g2.fillStyle = '#22dd33'; g2.fillRect(0, 0, 120, 90); g2.fillStyle = '#fff'; g2.fillText('2D OK', 40, 50); add('2D 画布', '已绘制'); } catch (e) { add('2D 画布', '失败 ' + e.message); }
+  var c = document.getElementById('cgl');
+  var gl = c.getContext('webgl2'); var ver = 'WebGL2';
+  if (!gl) { gl = c.getContext('webgl'); ver = gl ? 'WebGL1（不支持 WebGL2，游戏无法运行）' : '不支持 WebGL'; }
+  add('WebGL', ver);
+  if (gl) {
+    var dbg = gl.getExtension('WEBGL_debug_renderer_info');
+    add('GPU', dbg ? gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL) + ' / ' + gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
+    add('最大纹理', gl.getParameter(gl.MAX_TEXTURE_SIZE));
+    add('浮点渲染', (gl.getExtension('EXT_color_buffer_float') ? 'float ' : '') + (gl.getExtension('EXT_color_buffer_half_float') ? 'half' : '') || '无');
+    var p = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT);
+    add('片元 highp', p && p.precision > 0 ? '支持' : '不支持');
+    gl.clearColor(1.0, 0.55, 0.1, 1.0); gl.clear(gl.COLOR_BUFFER_BIT);
+    var px = new Uint8Array(4); gl.readPixels(60, 45, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    add('WebGL 回读像素', px.join(',') + (px[0] > 200 && px[1] > 100 ? ' (渲染正常)' : ' (渲染异常)'));
+    add('上下文属性', JSON.stringify(gl.getContextAttributes()));
+  }
+  // animated triangle
+  var c3 = document.getElementById('cgl2'); var g3 = c3.getContext('webgl2') || c3.getContext('webgl');
+  if (g3) {
+    function sh(t, s) { var o = g3.createShader(t); g3.shaderSource(o, s); g3.compileShader(o); if (!g3.getShaderParameter(o, g3.COMPILE_STATUS)) add('着色器错误', g3.getShaderInfoLog(o)); return o; }
+    var pr = g3.createProgram();
+    g3.attachShader(pr, sh(g3.VERTEX_SHADER, 'attribute vec2 p;uniform float t;void main(){float c=cos(t),s=sin(t);gl_Position=vec4(c*p.x-s*p.y,s*p.x+c*p.y,0.,1.);}'));
+    g3.attachShader(pr, sh(g3.FRAGMENT_SHADER, 'precision highp float;void main(){gl_FragColor=vec4(1.,.8,.2,1.);}'));
+    g3.linkProgram(pr); g3.useProgram(pr);
+    var b = g3.createBuffer(); g3.bindBuffer(g3.ARRAY_BUFFER, b);
+    g3.bufferData(g3.ARRAY_BUFFER, new Float32Array([0, .8, -.7, -.6, .7, -.6]), g3.STATIC_DRAW);
+    var loc = g3.getAttribLocation(pr, 'p'); g3.enableVertexAttribArray(loc); g3.vertexAttribPointer(loc, 2, g3.FLOAT, false, 0, 0);
+    var ut = g3.getUniformLocation(pr, 't');
+    (function frame(ts) { g3.clearColor(.1, .2, .5, 1); g3.clear(g3.COLOR_BUFFER_BIT); g3.uniform1f(ut, ts / 600); g3.drawArrays(g3.TRIANGLES, 0, 3); requestAnimationFrame(frame); })(0);
+  }
+  var text = info.join('\n');
+  document.getElementById('out').textContent = text;
+  document.getElementById('copy').onclick = function () {
+    (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(function () { alert('已复制'); }, function () { prompt('请手动复制：', text); });
+  };
+})();
+</script>
+</body>
+</html>
