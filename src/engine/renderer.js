@@ -92,7 +92,8 @@ export class Renderer {
   setQuality(q) {
     this.quality = q;
     const cfg = QUALITY[q] || QUALITY.high;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, cfg.dpr));
+    this.dynScale = this.dynScale || 1;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, cfg.dpr) * this.dynScale);
     this.sun.shadow.mapSize.set(cfg.shadow, cfg.shadow);
     if (this.sun.shadow.map) { this.sun.shadow.map.dispose(); this.sun.shadow.map = null; }
     this._buildComposer();
@@ -115,6 +116,23 @@ export class Renderer {
     this.scene.environment = rt.texture;
     this.scene.environmentIntensity = 0.55;
     pm.dispose();
+  }
+
+  // Adaptive resolution: call every frame with the real frame time (seconds).
+  adapt(frameDt) {
+    this._ft = this._ft === undefined ? frameDt : this._ft * 0.95 + frameDt * 0.05;
+    this._adaptT = (this._adaptT || 0) + frameDt;
+    if (this._adaptT < 2.5) return;
+    this._adaptT = 0;
+    const cfg = QUALITY[this.quality] || QUALITY.high;
+    let s = this.dynScale;
+    if (this._ft > 1 / 42 && s > 0.55) s = Math.max(0.55, s * 0.85);
+    else if (this._ft < 1 / 58 && s < 1) s = Math.min(1, s * 1.1);
+    if (Math.abs(s - this.dynScale) > 0.01) {
+      this.dynScale = s;
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, cfg.dpr) * s);
+      this.resize();
+    }
   }
 
   resize() {

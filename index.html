@@ -192,6 +192,22 @@
     #chat.typing #chat-input { display: block; }
     #toast { position: absolute; top: 90px; left: 50%; transform: translateX(-50%); padding: 8px 16px; background: rgba(0,0,0,.7); border-radius: 6px; font-size: 14px; opacity: 0; transition: opacity .3s; }
     #toast.show { opacity: 1; }
+    #hint { position: absolute; bottom: 64px; left: 50%; transform: translateX(-50%); font-size: 13px; color: #ffe2b0; background: rgba(10,7,5,.55); padding: 6px 14px; border-radius: 6px; white-space: nowrap; }
+    #hint:empty { display: none; }
+    @media (max-width: 900px) { #hint { white-space: normal; width: 90vw; text-align: center; } }
+    /* compact HUD for touch devices (landscape phones/tablets) */
+    body.touch #radar { width: 96px; height: 96px; left: 8px; top: 8px; }
+    body.touch #hud-bl { left: 8px; bottom: auto; top: 110px; padding: 4px 10px 6px; min-width: 0; }
+    body.touch #hud-bl .hp { font-size: 24px; } body.touch #hud-bl .cls { font-size: 11px; }
+    body.touch #hud-br { right: 8px; bottom: auto; top: 8px; padding: 4px 10px 6px; min-width: 0; }
+    body.touch #hud-br .ammo { font-size: 24px; } body.touch #hud-br .ammo span { font-size: 13px; } body.touch #hud-br .wname { font-size: 11px; }
+    body.touch #feed { top: 78px; right: 8px; transform: scale(.8); transform-origin: top right; }
+    body.touch #hud-top { transform: translateX(-50%) scale(.72); transform-origin: top center; top: 4px; }
+    body.touch #round-info, body.touch #hint { display: none; }
+    body.touch #skills { bottom: 6px; transform: translateX(-50%) scale(.8); }
+    body.touch #announce .big { font-size: 30px; } body.touch #announce .sub { font-size: 13px; }
+    body.touch .tag { font-size: 10px; }
+    body.touch #chat { display: none; }
     @media (max-width: 720px) {
       #radar { width: 110px; height: 110px; }
       #hud-bl .hp, #hud-br .ammo { font-size: 30px; }

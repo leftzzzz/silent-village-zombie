@@ -95,6 +95,7 @@ export class Body {
     this.justLanded = false;
     this.capsule = new Capsule(new THREE.Vector3(), new THREE.Vector3(), radius);
     this.knock = new THREE.Vector3(); // external impulse velocity (decays)
+    this.stagger = 0;                 // seconds of reduced acceleration after being shot
   }
 
   setScale(radius, height, crouchHeight) {
@@ -169,8 +170,9 @@ export class Body {
     } else {
       const speed = p.speed ?? 5;
       const tx = wish.x * speed, tz = wish.z * speed;
+      this.stagger = Math.max(0, this.stagger - dt);
       if (this.onGround) {
-        const accel = p.accel ?? 55;
+        const accel = (p.accel ?? 55) * (this.stagger > 0 ? 0.3 : 1);
         const fr = p.friction ?? 10;
         // friction
         const hs = Math.hypot(this.vel.x, this.vel.z);
@@ -205,6 +207,7 @@ export class Body {
 
     // knockback impulse
     if (this.knock.lengthSq() > 1e-4) {
+      this.stagger = Math.max(this.stagger, 0.22);
       this.vel.x += this.knock.x; this.vel.z += this.knock.z;
       if (this.knock.y > 0) { this.vel.y = Math.max(this.vel.y, this.knock.y); this.onGround = false; }
       this.knock.set(0, 0, 0);

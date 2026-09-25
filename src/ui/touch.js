@@ -25,19 +25,19 @@ export function setupTouch(input, onPause) {
   const css = document.createElement('style');
   css.textContent = `
     #touch { position: fixed; inset: 0; z-index: 12; pointer-events: none; touch-action: none; }
-    #touch .stick { position: absolute; left: 4vw; bottom: 6vh; width: 150px; height: 150px; border-radius: 50%; background: rgba(255,255,255,.07); border: 2px solid rgba(255,220,170,.25); pointer-events: auto; }
+    #touch .stick { position: absolute; left: 4vw; bottom: 5vh; width: 130px; height: 130px; border-radius: 50%; background: rgba(255,255,255,.07); border: 2px solid rgba(255,220,170,.25); pointer-events: auto; }
     #touch .stick i { position: absolute; left: 50%; top: 50%; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; background: rgba(255,200,120,.35); }
     #touch .look { position: absolute; right: 0; top: 0; width: 55vw; height: 100%; pointer-events: auto; }
-    #touch .tb { position: absolute; pointer-events: auto; border-radius: 50%; border: 2px solid rgba(255,220,170,.35); background: rgba(20,14,10,.45); color: #ffe2b0; font-size: 14px; font-weight: 700; width: 58px; height: 58px; }
+    #touch .tb { position: absolute; pointer-events: auto; border-radius: 50%; border: 2px solid rgba(255,220,170,.35); background: rgba(20,14,10,.45); color: #ffe2b0; font-size: 13px; font-weight: 700; width: 50px; height: 50px; padding: 0; }
     #touch .tb.on { background: rgba(255,150,40,.45); }
-    #touch .fire { right: 5vw; bottom: 22vh; width: 84px; height: 84px; font-size: 16px; }
-    #touch .fire2 { right: calc(5vw + 96px); bottom: 12vh; }
-    #touch .jump { right: 4vw; bottom: 6vh; }
-    #touch .crouch { right: calc(4vw + 70px); bottom: 3vh; }
-    #touch .reload { right: calc(5vw + 100px); bottom: 30vh; }
-    #touch .cycle { right: calc(5vw + 30px); bottom: 38vh; font-size: 12px; }
-    #touch .skill { right: calc(5vw + 170px); bottom: 20vh; }
-    #touch .use { right: calc(5vw + 170px); bottom: 32vh; }
+    #touch .fire { right: 3vw; bottom: 30vh; width: 74px; height: 74px; font-size: 15px; }
+    #touch .fire2 { right: calc(3vw + 84px); bottom: 20vh; }
+    #touch .jump { right: 3vw; bottom: 6vh; }
+    #touch .crouch { right: calc(3vw + 62px); bottom: 3vh; }
+    #touch .reload { right: calc(3vw + 88px); bottom: calc(20vh + 62px); }
+    #touch .cycle { right: calc(3vw + 12px); bottom: calc(30vh + 84px); font-size: 11px; }
+    #touch .skill { right: calc(3vw + 150px); bottom: 12vh; }
+    #touch .use { right: calc(3vw + 150px); bottom: calc(12vh + 60px); }
     #touch .pause { left: 50%; top: 8px; transform: translateX(-50%); width: 40px; height: 40px; font-size: 12px; top: 64px; }
   `;
   document.head.appendChild(css);

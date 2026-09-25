@@ -99,6 +99,7 @@ let renderer, vm, hud, game, input, net;
 let running = false, inMenu = true, paused = false;
 let menuT = 0;
 const TOUCH = isTouchDevice();
+if (TOUCH) document.body.classList.add('touch');
 const TIMESCALE = Math.min(4, Math.max(0.1, parseFloat(new URLSearchParams(location.search).get('timescale')) || 1));
 let touchUI = null;
 
@@ -427,6 +428,8 @@ function loop(now) {
     for (const a2 of game.actors.values()) a2.updateVisual(dt);
     game.effects.update(dt, cam.position);
   }
+  if (running) renderer.adapt(Math.min(0.2, (now - (loop.lastNow || now)) / 1000));
+  loop.lastNow = now;
   renderer.render(dt, game ? game.time : now / 1000);
 }
 

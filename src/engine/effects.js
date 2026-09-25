@@ -421,6 +421,14 @@ export class Effects {
     }
     p.needsUpdate = true;
 
+    // low drifting dust clouds near the camera (wind blows east)
+    this._dustT = (this._dustT || 0) - dt;
+    if (this._dustT <= 0) {
+      this._dustT = 0.35;
+      const a = Math.random() * Math.PI * 2, r = 6 + Math.random() * 22;
+      const g = 0.55 + Math.random() * 0.1;
+      this.smoke.emit(camPos.x + Math.cos(a) * r, 0.3 + Math.random() * 0.8, camPos.z + Math.sin(a) * r, 1.2 + Math.random(), 0.05, 0.3, 7, 2.5 + Math.random() * 2, g * 1.05, g * 0.9, g * 0.72, 0.09, -0.02, 0.05, 0.5);
+    }
     // tumbleweeds bounce along the street
     if (Math.random() < dt * 0.05 && this.tumbleweeds.length < 3) this.spawnTumbleweed();
     for (let i = this.tumbleweeds.length - 1; i >= 0; i--) {

@@ -40,6 +40,7 @@ export class HUD {
       <div id="scoreboard" class="hidden"></div>
       <div id="chat"><div id="chat-log"></div><input id="chat-input" maxlength="80" placeholder="按 Enter 发送" /></div>
       <div id="toast"></div>
+      <div id="hint"></div>
     `;
     const $ = (id) => root.querySelector('#' + id);
     this.el = {
@@ -48,7 +49,7 @@ export class HUD {
       dmg: $('dmg-ind'), target: $('target-bar'), cls: $('cls-label'), hp: $('hp'), hpMax: $('hp-max'), hpbar: $('hpbar'),
       wname: $('wname'), mag: $('mag'), reserve: $('reserve'), nades: $('nades'), skills: $('skills'), popups: $('popups'),
       tags: $('tags'), spectate: $('spectate'), score: $('scoreboard'), chat: $('chat'), chatLog: $('chat-log'), chatInput: $('chat-input'),
-      toast: $('toast'), br: $('hud-br'), bl: $('hud-bl'),
+      toast: $('toast'), br: $('hud-br'), bl: $('hud-bl'), hint: $('hint'),
     };
     this.radar = $('radar');
     this.rctx = this.radar.getContext('2d');
@@ -148,7 +149,7 @@ export class HUD {
   }
   removeTag(a) { const d = this.tags.get(a.id); if (d) d.remove(); this.tags.delete(a.id); }
 
-  showScore(v) { this.scoreVisible = v; this.el.score.classList.toggle('hidden', !v); }
+  showScore(v) { this.scoreVisible = v; this.el.score.classList.toggle('hidden', !(v || this._autoScore)); }
 
   // ----------------------------------------------------------------- update
   update(dt, g) {
@@ -222,7 +223,10 @@ export class HUD {
 
     this._tags(g);
     this._radar(g);
-    if (this.scoreVisible) this._scoreboard(g);
+    const autoScore = m.phase === 'end' && m.timer < 5.5;
+    if (autoScore !== this._autoScore) { this._autoScore = autoScore; this.el.score.classList.toggle('hidden', !(autoScore || this.scoreVisible)); }
+    if (this.scoreVisible || autoScore) this._scoreboard(g);
+    this.set('hint', this.el.hint, m.phase === 'prep' && me.team === 'H' ? '寻找有利地形：钟楼平台(爬梯) · 酒馆窄台(箱子) · 枪店屋顶(楼梯) · 蓝房子屋顶(跑酷) · 邮局 · 地下通道　|　按 B 换主武器' : '');
   }
 
   _tags(g) {
