@@ -6,7 +6,7 @@ A browser-based 3D multiplayer zombie shooter — a fan recreation of the CrossF
 Everything — buildings, characters, weapons, textures, sound effects — is generated procedurally in code
 (three.js + Web Audio). No external game assets are used.
 
-**▶ Play: https://silent-village-zombie.leftzzzz666.workers.dev** (desktop keyboard + mouse recommended; touch controls on phones)
+**▶ Play: https://cf.leftzzzz.top** (mirror: https://silent-village-zombie.leftzzzz666.workers.dev) (desktop keyboard + mouse recommended; touch controls on phones)
 
 | | |
 |---|---|

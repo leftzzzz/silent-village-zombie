@@ -3,6 +3,10 @@
   "name": "silent-village-zombie",
   "main": "worker/index.js",
   "compatibility_date": "2025-09-01",
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "cf.leftzzzz.top", "custom_domain": true }
+  ],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS"
