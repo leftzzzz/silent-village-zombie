@@ -26,7 +26,7 @@ Everything — buildings, characters, weapons, textures, sound effects — is ge
 - **Terminator mode rules**: 20 s countdown → mother zombies + one **Terminator** (终结者) mutate; zombies infect
   on hit; zombies respawn unless killed with a knife; evolve after 3 / 5 infections; Terminator energy shield (G)
   and x-ray vision of humans; the last ~20% of humans can press **E** to become **Ghost Hunters** (幽灵猎手) with a
-  one-hit energy blade; morale +10% when ≤3 humans remain; supply drops; CF-style knockback on zombies.
+  heavy energy blade (knife/blade kills are permanent); morale +10% when ≤3 humans remain; supply drops; CF-style knockback on zombies.
 - **Weapons**: AK-47, M4A1, MG3, Desert Eagle, M9 knife (light/heavy), HE grenades — recoil, spread, reloads,
   tracers, decals, headshots.
 - **AI bots** fill the room: human bots path to real holding spots (auto-generated multi-level nav graph with
