@@ -1,0 +1,3 @@
+<!doctype html><html><body style="margin:0"><canvas id=c width=400 height=300></canvas><script>
+const gl=document.getElementById('c').getContext('webgl2');console.log('webgl2', !!gl, gl && gl.getParameter(gl.VERSION), gl && gl.getParameter(gl.getExtension('WEBGL_debug_renderer_info')?.UNMASKED_RENDERER_WEBGL||gl.RENDERER));
+gl.clearColor(1,0.5,0,1);gl.clear(gl.COLOR_BUFFER_BIT);</script></body></html>

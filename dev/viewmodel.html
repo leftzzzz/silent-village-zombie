@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Viewmodel test</title>
+<link rel="icon" href="data:,">
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #000; font-family: ui-monospace, Menlo, monospace; }
+  canvas { display: block; }
+  #hud { position: fixed; left: 8px; top: 8px; color: #f3e4c8; font-size: 12px; line-height: 1.45; text-shadow: 0 1px 2px #000; pointer-events: none; white-space: pre; }
+  #cross { position: fixed; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; pointer-events: none; }
+  #cross::before, #cross::after { content: ''; position: absolute; background: #7dff7d; }
+  #cross::before { left: 6px; top: 0; width: 2px; height: 14px; }
+  #cross::after { top: 6px; left: 0; height: 2px; width: 14px; }
+</style>
+</head>
+<body>
+<div id="hud"></div>
+<div id="cross"></div>
+<script type="module" src="./viewmodel-demo.js"></script>
+</body>
+</html>

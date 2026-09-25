@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="icon" href="data:," />
+<title>Texture Gallery — New Silent Village</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rye&display=swap" />
+<style>
+  html, body { margin: 0; height: 100%; background: #1b1712; overflow: hidden; font: 12px/1.3 system-ui, sans-serif; color: #eadbc0; }
+  #labels { position: fixed; inset: 0; pointer-events: none; }
+  .lab { position: absolute; transform: translate(-50%, 0); background: rgba(20, 14, 8, 0.72); padding: 1px 5px; border-radius: 3px; white-space: nowrap; font-size: 11px; }
+  #info { position: fixed; left: 8px; top: 6px; background: rgba(20, 14, 8, 0.75); padding: 4px 8px; border-radius: 4px; font-size: 11px; }
+  #flat { position: fixed; inset: 0; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 4px; padding: 4px; overflow: auto; background: #222; }
+  #flat figure { margin: 0; position: relative; }
+  #flat figcaption { position: absolute; left: 2px; top: 2px; background: rgba(0,0,0,.6); padding: 0 4px; font-size: 10px; }
+  #flat canvas { display: block; background: repeating-conic-gradient(#555 0 25%, #333 0 50%) 0 0 / 16px 16px; }
+</style>
+</head>
+<body>
+<div id="labels"></div>
+<div id="info">generating…</div>
+<script type="module" src="./textures-demo.js"></script>
+</body>
+</html>

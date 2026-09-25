@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audio Test Bench</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { --bg: #16130f; --panel: #221d17; --line: #3a3128; --text: #e8dcc8; --dim: #a39580; --accent: #d9a441; --ok: #7fbf6a; --bad: #e0604f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--text); font: 13px/1.4 system-ui, sans-serif; }
+  h1 { font-size: 18px; margin: 0 0 12px; color: var(--accent); letter-spacing: .5px; }
+  h2 { font-size: 12px; margin: 14px 0 6px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; }
+  .bar label { display: flex; gap: 6px; align-items: center; color: var(--dim); }
+  button { background: #2e271f; color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 5px 9px; font: inherit; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.on { background: var(--accent); color: #1a150f; border-color: var(--accent); }
+  .grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  #stats { font: 12px ui-monospace, monospace; color: var(--dim); white-space: pre-wrap; }
+  table { border-collapse: collapse; font: 12px ui-monospace, monospace; margin-top: 8px; }
+  td, th { border: 1px solid var(--line); padding: 2px 6px; text-align: right; }
+  th { color: var(--dim); }
+  td:first-child { text-align: left; }
+  .ok { color: var(--ok); } .bad { color: var(--bad); }
+  input[type=range] { width: 140px; }
+</style>
+</head>
+<body>
+<h1>AudioSys test bench</h1>
+<div class="bar">
+  <button id="unlock">Unlock audio</button>
+  <label>Master <input type="range" id="vol" min="0" max="1" step="0.01" value="0.8"></label>
+  <label><input type="checkbox" id="spatial"> Spatial</label>
+  <label>Angle <input type="range" id="ang" min="-180" max="180" value="0"></label>
+  <label>Distance <input type="range" id="dist" min="1" max="140" value="10"></label>
+  <label>Listener yaw <input type="range" id="yaw" min="-180" max="180" value="0"></label>
+  <span id="posl"></span>
+</div>
+<div class="bar">
+  <button id="amb">Ambient (startAmbient): off</button>
+  <button data-loop="heartbeat">loop heartbeat</button>
+  <button data-loop="shield_loop">loop shield_loop</button>
+  <button data-loop="electric_loop">loop electric_loop</button>
+  <button data-loop="ambient">loop ambient</button>
+  <button id="mg">MG3 900 RPM x3s</button>
+  <button id="ak">AK 600 RPM @ spatial pos</button>
+  <button id="stress">Stress: 4x MG3 far</button>
+  <button id="analyze">Analyze buffers</button>
+</div>
+<div class="bar"><div id="stats">locked</div></div>
+<div id="groups"></div>
+<div id="report"></div>
+
+<script type="module">
+import { audio, AudioSys, SOUNDS } from '/src/engine/audio.js';
+
+const GROUPS = {
+  Weapons: ['shot_ak47', 'shot_m4a1', 'shot_mg3', 'shot_deagle', 'dryfire', 'reload_rifle', 'reload_mg', 'reload_pistol', 'draw', 'knife_slash', 'knife_stab', 'knife_hit_wall', 'knife_hit_flesh', 'grenade_pin', 'grenade_throw', 'grenade_bounce', 'explosion', 'shell_casing'],
+  Impacts: ['bullet_impact_wood', 'bullet_impact_dirt', 'bullet_impact_metal', 'bullet_flesh', 'headshot', 'whizz', 'hitmarker', 'kill_confirm'],
+  Movement: ['step_dirt', 'step_wood', 'step_metal', 'jump', 'land', 'ladder'],
+  Zombie: ['zombie_growl', 'zombie_attack', 'zombie_hit', 'zombie_pain', 'zombie_death', 'zombie_respawn', 'zombie_jump', 'infect', 'evolve', 'terminator_roar', 'terminator_zap', 'shield_on', 'shield_loop', 'electric_loop'],
+  'Human / Hunter': ['human_pain', 'human_death', 'hunter_transform', 'blade_slash', 'blade_hit'],
+  'UI / Game': ['ui_click', 'ui_hover', 'countdown_tick', 'round_start', 'win_human', 'win_zombie', 'pickup', 'supply_drop', 'bell', 'heartbeat', 'low_hp'],
+  Ambience: ['ambient', 'amb_crow', 'amb_creak', 'amb_windmill', 'amb_howl', 'amb_sign', 'amb_gust'],
+};
+const $ = (id) => document.getElementById(id);
+const deg = (d) => (d * Math.PI) / 180;
+
+function srcPos() {
+  const a = deg(+$('ang').value), d = +$('dist').value;
+  // angle 0 = straight ahead (-Z) when yaw = 0; positive angle = to the right
+  return { x: Math.sin(a) * d, y: 1.6, z: -Math.cos(a) * d };
+}
+function opts() { return $('spatial').checked ? { pos: srcPos() } : {}; }
+function syncListener() {
+  audio.setListener({ x: 0, y: 1.6, z: 0 }, deg(+$('yaw').value));
+  const p = srcPos();
+  $('posl').textContent = `src (${p.x.toFixed(1)}, ${p.z.toFixed(1)})`;
+}
+
+const groupsEl = $('groups');
+for (const [g, names] of Object.entries(GROUPS)) {
+  const h = document.createElement('h2'); h.textContent = g; groupsEl.appendChild(h);
+  const grid = document.createElement('div'); grid.className = 'grid';
+  for (const n of names) {
+    const b = document.createElement('button'); b.textContent = n;
+    b.onclick = () => { audio.unlock(); syncListener(); audio.play(n, opts()); };
+    b.onmouseenter = () => { if (audio.ctx) audio.play('ui_hover'); };
+    grid.appendChild(b);
+  }
+  groupsEl.appendChild(grid);
+}
+const missing = SOUNDS.filter((n) => !Object.values(GROUPS).flat().includes(n));
+if (missing.length) console.warn('ungrouped sounds', missing);
+
+$('unlock').onclick = () => { audio.unlock(); syncListener(); };
+$('vol').oninput = (e) => audio.setMasterVolume(+e.target.value);
+for (const id of ['ang', 'dist', 'yaw']) $(id).oninput = () => { syncListener(); for (const h of Object.values(loops)) h && h.setPos(srcPos()); };
+
+const loops = {};
+document.querySelectorAll('[data-loop]').forEach((b) => {
+  b.onclick = () => {
+    audio.unlock(); syncListener();
+    const n = b.dataset.loop;
+    if (loops[n]) { loops[n].stop(); loops[n] = null; b.classList.remove('on'); }
+    else { loops[n] = audio.loop(n, opts()); b.classList.add('on'); }
+  };
+});
+let ambOn = false;
+$('amb').onclick = (e) => {
+  audio.unlock(); syncListener();
+  ambOn = !ambOn;
+  ambOn ? audio.startAmbient() : audio.stopAmbient();
+  e.target.textContent = `Ambient (startAmbient): ${ambOn ? 'on' : 'off'}`;
+  e.target.classList.toggle('on', ambOn);
+};
+function burst(name, rpm, secs, posFn) {
+  audio.unlock(); syncListener();
+  const iv = 60000 / rpm, end = performance.now() + secs * 1000;
+  const id = setInterval(() => {
+    if (performance.now() > end) { clearInterval(id); return; }
+    audio.play(name, posFn ? { pos: posFn() } : {});
+    if (!posFn && Math.random() < 0.5) setTimeout(() => audio.play('shell_casing', { pos: { x: 0.6, y: 0, z: 0.3 }, volume: 0.6 }), 350);
+  }, iv);
+}
+$('mg').onclick = () => burst('shot_mg3', 900, 3);
+$('ak').onclick = () => burst('shot_ak47', 600, 2.5, srcPos);
+$('stress').onclick = () => { for (let k = 0; k < 4; k++) burst('shot_mg3', 900, 4, () => ({ x: 60 * Math.sin(k * 1.6), y: 1.6, z: -60 * Math.cos(k * 1.6) })); };
+
+setInterval(() => {
+  const s = audio.stats();
+  $('stats').textContent = s.unlocked
+    ? `state=${s.state} voices=${s.voices} loops=${s.loops} hrtf=${s.hrtf} rendered=${s.rendered}/${s.total} unlock=${s.unlockMs.toFixed(0)}ms (eager ${s.eagerMs.toFixed(0)}ms) worker=${s.worker} bgDone=${s.bgDone} bg=${s.bgMs}ms`
+    : 'locked (click any button)';
+}, 250);
+
+// ---- numeric verification (used by headless check and the Analyze button)
+function analyze() {
+  audio.renderAll();
+  const rows = [];
+  for (const name of SOUNDS) {
+    const bufs = audio._bufs.get(name) || [];
+    bufs.forEach((b, k) => {
+      let pk = 0, ss = 0, nan = 0;
+      for (let c = 0; c < b.numberOfChannels; c++) {
+        const d = b.getChannelData(c);
+        for (let i = 0; i < d.length; i++) { const v = d[i]; if (!Number.isFinite(v)) nan++; else { const a = Math.abs(v); if (a > pk) pk = a; ss += v * v; } }
+      }
+      const rms = Math.sqrt(ss / (b.length * b.numberOfChannels));
+      const ok = nan === 0 && pk <= 1 && pk > 0.05 && rms > 0.001 && b.duration > 0.02 && b.duration < 15;
+      rows.push({ name, k, ch: b.numberOfChannels, sr: b.sampleRate, dur: +b.duration.toFixed(3), peak: +pk.toFixed(3), rms: +rms.toFixed(4), nan, ok });
+    });
+    if (!bufs.length) rows.push({ name, k: -1, ok: false });
+  }
+  return rows;
+}
+function showReport(rows) {
+  const t = document.createElement('table');
+  t.innerHTML = '<tr><th>name</th><th>var</th><th>ch</th><th>sr</th><th>dur s</th><th>peak</th><th>rms</th><th>NaN</th><th>ok</th></tr>' +
+    rows.map((r) => `<tr><td>${r.name}</td><td>${r.k}</td><td>${r.ch}</td><td>${r.sr}</td><td>${r.dur}</td><td>${r.peak}</td><td>${r.rms}</td><td>${r.nan}</td><td class="${r.ok ? 'ok' : 'bad'}">${r.ok ? 'OK' : 'FAIL'}</td></tr>`).join('');
+  $('report').replaceChildren(t);
+}
+$('analyze').onclick = () => { audio.unlock(); showReport(analyze()); };
+
+window.audio = audio;
+window.__audioTest = async () => {
+  const errors = [];
+  // 1. pre-unlock calls on a fresh instance must be no-ops
+  const pre = new AudioSys();
+  try {
+    const r = pre.play('shot_ak47', { pos: { x: 1, y: 0, z: 1 } });
+    if (r !== null) errors.push('pre-unlock play returned non-null');
+    const l = pre.loop('heartbeat'); l.setVolume(0.3); l.setPos({ x: 0, y: 0, z: 0 }); l.stop();
+    pre.setListener({ x: 0, y: 0, z: 0 }, 0.3); pre.setMasterVolume(0.5); pre.startAmbient(); pre.stopAmbient();
+  } catch (e) { errors.push('pre-unlock threw: ' + e.message); }
+  // 2. unlock + eager timing
+  audio.unlock();
+  audio.setListener({ x: 0, y: 1.6, z: 0 }, 0.4);
+  const s0 = audio.stats();
+  // wait for worker background render
+  const tw = performance.now();
+  while (!audio.stats().bgDone && performance.now() - tw < 20000) await new Promise((r) => setTimeout(r, 50));
+  const s1 = audio.stats();
+  const renderAllMs = audio.renderAll();
+  // 3. buffer stats
+  const rows = analyze();
+  // 4. play every sound 2D + spatial (near / far) + loops
+  for (const n of SOUNDS) {
+    try {
+      const a = audio.play(n, { volume: 0.05 }); if (a) a.stop();
+      const b = audio.play(n, { volume: 0.05, pos: { x: 8, y: 1, z: -6 } }); if (b) { b.setPos({ x: 9, y: 1, z: -6 }); b.stop(); }
+      audio.play(n, { volume: 0.05, pos: { x: 120, y: 0, z: 60 }, rate: 0.9 });
+    } catch (e) { errors.push(`play ${n}: ${e.message}`); }
+  }
+  for (const n of ['heartbeat', 'ambient', 'shield_loop', 'electric_loop']) {
+    try { const h = audio.loop(n, { volume: 0.05, pos: n === 'shield_loop' ? { x: 5, y: 2, z: 5 } : undefined }); h.setVolume(0.02); h.setPos({ x: 1, y: 0, z: 1 }); h.stop(); }
+    catch (e) { errors.push(`loop ${n}: ${e.message}`); }
+  }
+  audio.startAmbient(); audio.stopAmbient();
+  // 5. voice cap stress: 300 MG3 shots + 100 casings instantly
+  let played = 0;
+  for (let i = 0; i < 300; i++) if (audio.play('shot_mg3', { volume: 0.02, pos: { x: (i % 30) - 15, y: 1, z: -20 - (i % 7) } })) played++;
+  for (let i = 0; i < 100; i++) audio.play('shell_casing', { volume: 0.02, pos: { x: 1, y: 0, z: 1 } });
+  const sStress = audio.stats();
+  const perName = {}; for (const v of audio.voices) perName[v.name] = (perName[v.name] || 0) + 1;
+  const bad = rows.filter((r) => !r.ok);
+  return {
+    ok: errors.length === 0 && bad.length === 0,
+    errors, badRows: bad,
+    sampleRate: audio.ctx.sampleRate, state: audio.ctx.state,
+    unlockMs: +s0.unlockMs.toFixed(1), eagerMs: +s0.eagerMs.toFixed(1), renderedAtUnlock: s0.rendered,
+    worker: s1.worker, bgMs: s1.bgMs, renderAllAfterBgMs: +renderAllMs.toFixed(1),
+    buffers: rows.length, sounds: SOUNDS.length,
+    stress: { accepted: played, voices: sStress.voices, hrtf: sStress.hrtf, perName },
+    rows: rows.map((r) => `${r.name}#${r.k} ${r.ch}ch ${r.dur}s pk=${r.peak} rms=${r.rms}`),
+  };
+};
+</script>
+</body>
+</html>
