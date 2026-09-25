@@ -58,6 +58,7 @@ class Input {
     });
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === canvas;
+      if (this.locked) this.everLocked = true;
       if (!this.locked) { this.state.fire = this.state.fire2 = false; this.keys.clear(); }
       this.onLockChange && this.onLockChange(this.locked);
     });
@@ -347,6 +348,11 @@ function setupSessionControls() {
     if (locked) { paused = false; $('pause').classList.add('hidden'); $('click-to-play').classList.add('hidden'); }
   };
   canvas.addEventListener('click', () => { if (!inMenu && !input.locked) lock(); });
+  addEventListener('keydown', (e) => {
+    if (e.code !== 'Escape' || inMenu || chatting || !input.fallback || !input.locked) return;
+    input.locked = false; paused = true;
+    $('pause').classList.remove('hidden');
+  });
   $('btn-resume').onclick = () => lock();
   $('btn-leave').onclick = () => {
     if (net && net.online) { net.close(); net = new OfflineNet(); game.net = net; }
@@ -381,6 +387,7 @@ function startChat() {
   chatting = true;
   hud.el.chat.classList.add('typing');
   document.exitPointerLock();
+  if (input.fallback) input.locked = false;
   setTimeout(() => hud.el.chatInput.focus(), 10);
 }
 function endChat() {
@@ -391,11 +398,37 @@ function endChat() {
   lock();
 }
 
+let lockTimer = 0;
 function lock() {
   audio.unlock();
-  if (TOUCH) { input.locked = true; paused = false; $('pause').classList.add('hidden'); $('buy').classList.add('hidden'); return; }
-  try { const p = canvas.requestPointerLock({ unadjustedMovement: true }); if (p && p.catch) p.catch(() => canvas.requestPointerLock()); } catch { canvas.requestPointerLock(); }
+  // a focused text field (e.g. the nickname box) would swallow WASD
+  if (document.activeElement && document.activeElement !== document.body && document.activeElement.blur) document.activeElement.blur();
+  if (TOUCH || input.fallback) {
+    input.locked = true; paused = false;
+    $('pause').classList.add('hidden'); $('buy').classList.add('hidden'); $('click-to-play').classList.add('hidden');
+    return;
+  }
+  if (!canvas.requestPointerLock) { enableMouseFallback(); return; }
+  clearTimeout(lockTimer);
+  // some browsers silently ignore the request: fall back if nothing happens
+  lockTimer = setTimeout(() => { if (!input.locked && !input.everLocked && !inMenu) enableMouseFallback(); }, 1500);
+  try {
+    const p = canvas.requestPointerLock();
+    if (p && p.catch) p.catch(() => { if (!input.everLocked) enableMouseFallback(); });
+  } catch { enableMouseFallback(); }
 }
+
+// Pointer lock unavailable/denied: read raw mousemove deltas without locking the cursor.
+function enableMouseFallback() {
+  if (input.fallback || inMenu) return;
+  clearTimeout(lockTimer);
+  input.fallback = true;
+  input.locked = true;
+  paused = false;
+  $('pause').classList.add('hidden'); $('click-to-play').classList.add('hidden');
+  hud.toast('浏览器未允许锁定鼠标，已切换为自由鼠标模式（Esc 暂停）');
+}
+document.addEventListener('pointerlockerror', () => { if (!input.everLocked) enableMouseFallback(); });
 
 // ---------------------------------------------------------------------- loop
 let last = performance.now(), fpsAcc = 0, fpsN = 0;
@@ -416,7 +449,7 @@ function loop(now) {
       const open = b.classList.contains('hidden');
       if (open && game.local && game.local.team === 'H') {
         [...$('buy-guns').children].forEach((c, i) => c.classList.toggle('on', PRIMARIES[i] === settings.primary));
-        b.classList.remove('hidden'); document.exitPointerLock();
+        b.classList.remove('hidden'); document.exitPointerLock(); if (input.fallback) input.locked = false;
       } else { b.classList.add('hidden'); lock(); }
     }
     if (input.locked) game.look(input.lookDX, input.lookDY);
