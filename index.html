@@ -6,6 +6,12 @@
   <!-- the page is already dark: stops mobile browsers from force-darkening it (which can black out canvases) -->
   <meta name="color-scheme" content="dark" />
   <meta name="darkreader-lock" />
+  <!-- Tencent X5 (QQ / WeChat in-app browsers on Android): app-style fullscreen, landscape -->
+  <meta name="x5-page-mode" content="app" />
+  <meta name="x5-fullscreen" content="true" />
+  <meta name="x5-orientation" content="landscape" />
+  <meta name="screen-orientation" content="landscape" />
+  <meta name="full-screen" content="yes" />
   <title>新寂静村 · 生化终结者</title>
   <meta name="description" content="浏览器 3D 多人生化射击：CrossFire 新寂静村（终结者模式）同人复刻" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23201510'/%3E%3Cpath d='M32 8v14M32 42v14M8 32h14M42 32h14' stroke='%23ff9a2a' stroke-width='5'/%3E%3Ccircle cx='32' cy='32' r='4' fill='%23ff4a2a'/%3E%3C/svg%3E" />
@@ -84,6 +90,16 @@
     @keyframes pulse { 50% { opacity: .55; } }
     #fatal { position: fixed; z-index: 100; left: 12px; right: 12px; bottom: 12px; padding: 12px 14px; border-radius: 8px; background: rgba(60,10,6,.94); border: 1px solid #ff6a4a; color: #ffe0d0; font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; max-height: 45vh; overflow: auto; }
     #fatal button { margin-top: 8px; padding: 6px 14px; border-radius: 6px; border: 1px solid #ffb08a; background: #7a2a14; color: #fff; }
+    #inapp { position: fixed; inset: 0; z-index: 90; background: rgba(10,7,4,.96); color: #f3e6d0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; }
+    #inapp .arrow { position: absolute; top: 6px; right: 14px; width: 110px; height: 110px; }
+    #inapp h2 { margin: 0; font-family: var(--title); color: var(--accent2); font-size: 26px; letter-spacing: 3px; }
+    #inapp p { margin: 0; font-size: 15px; line-height: 1.8; color: #e8d8bf; }
+    #inapp p b { color: var(--accent2); }
+    #inapp .btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
+    #inapp button { padding: 10px 18px; border-radius: 8px; font-size: 15px; font-weight: 700; border: 1px solid rgba(255,180,90,.5); }
+    #inapp .copy { background: linear-gradient(180deg, #ffc25a, #ff8a1a); color: #1a0f06; }
+    #inapp .go { background: #2a1d12; color: var(--accent2); }
+    #inapp small { color: var(--muted); font-size: 12px; }
     #rotate-hint { display: none; position: fixed; inset: 0; z-index: 40; background: rgba(12,8,5,.94); color: var(--accent2); align-items: center; justify-content: center; text-align: center; font-size: 18px; line-height: 1.8; }
     #rotate-hint .ico-rot { font-size: 46px; }
     #rotate-hint small { color: var(--muted); font-size: 13px; }
@@ -313,6 +329,14 @@
   <div id="fps"></div>
   <div id="fatal" class="hidden"></div>
   <div id="fx-overlay"></div>
+  <div id="inapp" class="hidden">
+    <svg class="arrow" viewBox="0 0 110 110"><path d="M20 100 C 30 50, 55 30, 92 18" fill="none" stroke="#ffcf6a" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 10"/><path d="M76 10 L96 16 L86 34" fill="none" stroke="#ffcf6a" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <h2>请在浏览器中打开</h2>
+    <p>当前是 <b id="inapp-name">QQ</b> 内置浏览器，它的内核<br>无法正常显示 3D 画面（会黑屏）。</p>
+    <p>点击右上角 <b>「···」</b>，选择 <b>「在浏览器打开」</b></p>
+    <div class="btns"><button class="copy" id="inapp-copy">复制链接</button><button class="go" id="inapp-go">仍要继续</button></div>
+    <small>也可以复制链接后粘贴到 Chrome / 系统浏览器</small>
+  </div>
   <div id="rotate-hint"><div><div class="ico-rot">📱↻</div>请把手机横过来游玩<br><small>建议关闭竖排方向锁定</small></div></div>
   <script>
     (function () {
@@ -323,6 +347,24 @@
         var b = document.createElement('button'); b.textContent = '重新加载'; b.onclick = function () { location.reload(); }; el.appendChild(b);
       }
       window.__showFatal = show;
+      // Android QQ / WeChat in-app browsers (Tencent X5/XWeb kernel) black out WebGL: guide users to a real browser
+      var ua = navigator.userAgent;
+      var android = /Android/i.test(ua);
+      var app = /MicroMessenger/i.test(ua) ? '微信' : /\bQQ\/\d/i.test(ua) ? 'QQ' : /TBS\/|XWEB\//i.test(ua) ? 'QQ/微信' : '';
+      if (android && app && location.search.indexOf('x5ok') < 0) {
+        document.addEventListener('DOMContentLoaded', function () {
+          var el = document.getElementById('inapp');
+          document.getElementById('inapp-name').textContent = app;
+          el.classList.remove('hidden');
+          document.getElementById('inapp-go').onclick = function () { el.classList.add('hidden'); };
+          document.getElementById('inapp-copy').onclick = function () {
+            var url = location.origin + location.pathname + location.search;
+            function done() { document.getElementById('inapp-copy').textContent = '已复制 ✓'; }
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, fallback); else fallback();
+            function fallback() { var t = document.createElement('textarea'); t.value = url; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); done(); } catch (e) { prompt('请复制链接：', url); } t.remove(); }
+          };
+        });
+      }
       window.addEventListener('error', function (e) { if (e.message && !/lock|ResizeObserver/i.test(e.message)) show(e.message + (e.filename ? '\n@ ' + e.filename + ':' + e.lineno : '')); });
       window.addEventListener('unhandledrejection', function (e) { var m = e.reason && (e.reason.message || String(e.reason)); if (m && !/lock/i.test(m)) show(m); });
     })();
