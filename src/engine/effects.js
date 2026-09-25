@@ -304,7 +304,7 @@ export class Effects {
   infectBurst(p) {
     for (let i = 0; i < 26; i++) {
       _v.set(Math.random() - 0.5, Math.random() * 1.5, Math.random() - 0.5).multiplyScalar(3);
-      this.smoke.emit(p.x, p.y + 1, p.z, _v.x, _v.y, _v.z, 0.7 + Math.random() * 0.6, 0.18 + Math.random() * 0.2, 0.25, 0.4, 0.12, 0.32, -0.5, 1.8, 0.5);
+      this.smoke.emit(p.x, p.y + 1, p.z, _v.x, _v.y, _v.z, 0.7 + Math.random() * 0.6, 0.16 + Math.random() * 0.16, 0.25, 0.4, 0.12, 0.18, -0.5, 1.8, 0.45);
     }
     for (let i = 0; i < 20; i++) {
       _v.set(Math.random() - 0.5, Math.random() * 2, Math.random() - 0.5).multiplyScalar(4);

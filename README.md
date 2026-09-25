@@ -6,6 +6,15 @@ A browser-based 3D multiplayer zombie shooter — a fan recreation of the CrossF
 Everything — buildings, characters, weapons, textures, sound effects — is generated procedurally in code
 (three.js + Web Audio). No external game assets are used.
 
+**▶ Play: https://silent-village-zombie.leftzzzz666.workers.dev** (desktop keyboard + mouse recommended; touch controls on phones)
+
+| | |
+|---|---|
+| ![menu](docs/menu.jpg) | ![prep](docs/prep.jpg) |
+| ![terminator](docs/terminator.jpg) | ![zombie view](docs/zombie-view.jpg) |
+| ![terminator fists](docs/terminator-fists.jpg) | ![saloon ledge](docs/saloon.jpg) |
+| ![street](docs/street.jpg) | ![mobile](docs/mobile.jpg) |
+
 ## Features
 
 - **The map**: a Western ghost town at dawn in a canyon — gloomy amber sky, dust, tumbleweeds, a clock tower
@@ -22,8 +31,10 @@ Everything — buildings, characters, weapons, textures, sound effects — is ge
   tracers, decals, headshots.
 - **AI bots** fill the room: human bots path to real holding spots (auto-generated multi-level nav graph with
   jump/drop/ladder links) and defend; zombie bots hunt with a flow field; bots transform into hunters, use skills.
-- **Online multiplayer** via Cloudflare Durable Objects: rooms, host migration, room list, invite links.
-  The host runs the rules + bots; other players join the same round.
+- **Online multiplayer** via Cloudflare Durable Objects: rooms, room list, invite links (`?room=xxx`).
+  The host runs the rules + bots; other players join the same round. Host migration when the host leaves
+  or backgrounds the tab.
+- **Touch controls** on phones/tablets, adaptive resolution on slower GPUs.
 
 ## Controls
 

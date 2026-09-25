@@ -59,6 +59,13 @@ export class Room extends DurableObject {
       }
       if (!id) return;
       if (msg.sys === 'ping') { server.send(JSON.stringify({ sys: 'pong', t: msg.t })); return; }
+      if (msg.sys === 'yield' && id === this.hostId && this.clients.size > 1) {
+        // host tab went to the background: hand hosting to the longest-connected other player
+        let next = null, t = Infinity;
+        for (const [pid, c] of this.clients) if (pid !== id && c.joined < t) { t = c.joined; next = pid; }
+        if (next) { this.hostId = next; this.broadcast({ sys: 'host', id: next }); }
+        return;
+      }
       if (!msg.m) return;
       const out = JSON.stringify({ from: id, m: msg.m });
       if (msg.to === 'all') {

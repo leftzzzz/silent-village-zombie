@@ -174,6 +174,12 @@ export class Game {
     this.hud.toast('你已成为房主（主机）');
   }
 
+  becomeClient() {
+    if (!this.isHost) return;
+    this.isHost = false;
+    for (const a of this.actors.values()) if (a.isBot) { a.dropSim(); this.bots.remove(a.id); a.snaps.length = 0; }
+  }
+
   // ------------------------------------------------------------- shooting
   traceShot(shooter, origin, dir, range) {
     const res = this._trace || (this._trace = { point: new THREE.Vector3(), normal: new THREE.Vector3(), actor: null, head: false, hitWorld: false, surface: 'dirt' });

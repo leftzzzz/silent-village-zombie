@@ -66,6 +66,7 @@ export class OnlineNet {
   sendHost(m) { this._send({ to: 'host', m }); }
   sendTo(id, m) { this._send({ to: id, m }); }
   chat(text) { this._send({ to: 'all', m: { k: 'chat', text }, echo: true }); }
+  yieldHost() { this._send({ sys: 'yield' }); }
   close() { clearInterval(this._pingI); try { this.ws && this.ws.close(); } catch { /* */ } }
 }
 

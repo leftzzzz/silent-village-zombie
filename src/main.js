@@ -312,13 +312,20 @@ function wireNet(on) {
     game.removeActor(p.id);
     if (game.isHost) { game.balanceBots(); game.mode.checkWin(); }
   });
-  on.on('host', (id) => { if (id === on.id) game.becomeHost(); });
+  on.on('host', (id) => { if (id === on.id) game.becomeHost(); else game.becomeClient(); });
   on.on('chat', (from, text) => {
     const a = game.actors.get(from);
     hud.chatLine(a ? a.name : '?', text, a ? a.team : 'H');
   });
   on.on('close', () => { if (net === on) { hud.announce('连接已断开', '已切换为单机模式继续', 3); net = new OfflineNet(); game.net = net; game.becomeHost(); } });
 }
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && net && net.online && game && game.isHost) {
+    const humans = [...game.actors.values()].filter((a) => !a.isBot).length;
+    if (humans > 1) net.yieldHost();
+  }
+});
 
 function enterGame() {
   hideMenu();
