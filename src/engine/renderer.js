@@ -11,7 +11,7 @@ export const SUN_DIR = new THREE.Vector3(0.78, 0.36, 0.5).normalize(); // low, e
 export const FOG_COLOR = new THREE.Color(0x8d7658);
 
 const QUALITY = {
-  low: { dpr: 0.8, shadow: 1024, bloom: false, msaa: 0, fogBoost: 1.1 },
+  low: { dpr: 1.0, shadow: 1024, bloom: false, msaa: 0, fogBoost: 1.1, direct: true },
   medium: { dpr: 1.25, shadow: 2048, bloom: true, msaa: 0, fogBoost: 1.0 },
   high: { dpr: 2, shadow: 4096, bloom: true, msaa: 4, fogBoost: 1.0 },
 };
@@ -27,6 +27,13 @@ export class Renderer {
     r.shadowMap.enabled = true;
     r.shadowMap.type = THREE.PCFShadowMap;
     this.renderer = r;
+    // float render targets are needed for the post-processing chain; some mobile GPUs can't render to them
+    this.floatRT = r.extensions.has('EXT_color_buffer_float') || r.extensions.has('EXT_color_buffer_half_float');
+    canvas.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+      if (window.__showFatal) window.__showFatal('显卡上下文丢失（通常是显存不足）。请在设置里选择「流畅」画质后重新加载。');
+    });
+    this.overlay = document.getElementById('fx-overlay');
 
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(FOG_COLOR, 0.0105);
@@ -65,7 +72,8 @@ export class Renderer {
 
   _buildComposer() {
     const q = QUALITY[this.quality] || QUALITY.high;
-    const size = this.renderer.getDrawingBufferSize(new THREE.Vector2());
+    // direct mode never uses the composer: keep its targets tiny to save GPU memory
+    const size = this.direct ? new THREE.Vector2(1, 1) : this.renderer.getDrawingBufferSize(new THREE.Vector2());
     const rt = new THREE.WebGLRenderTarget(Math.max(1, size.x), Math.max(1, size.y), { type: THREE.HalfFloatType, samples: q.msaa });
     if (this.composer) this.composer.dispose();
     this.composer = new EffectComposer(this.renderer, rt);
@@ -141,10 +149,28 @@ export class Renderer {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     const pr = this.renderer.getPixelRatio();
-    this.composer.setPixelRatio(pr);
-    this.composer.setSize(w, h);
+    if (!this.direct) { this.composer.setPixelRatio(pr); this.composer.setSize(w, h); }
     if (this.vm) this.vm.setAspect(w / h);
     this.gradePass.uniforms.uRes.value.set(w * pr, h * pr);
+  }
+
+  get direct() {
+    const q = QUALITY[this.quality] || QUALITY.high;
+    return !!q.direct || !this.floatRT;
+  }
+
+  // Cheap CSS stand-in for the grade pass when rendering directly (low quality / no float RTs).
+  _cssGrade() {
+    const g = this.grade;
+    const key = `${g.damage.toFixed(2)}|${g.zombie}|${g.flash.toFixed(2)}|${g.flashColor.getHexString()}|${g.lowHp.toFixed(2)}`;
+    if (key === this._cssKey || !this.overlay) return;
+    this._cssKey = key;
+    const layers = [];
+    if (g.flash > 0.01) { const c = g.flashColor; layers.push(`linear-gradient(rgba(${(c.r * 255) | 0},${(c.g * 255) | 0},${(c.b * 255) | 0},${g.flash.toFixed(2)}),rgba(0,0,0,0))`); }
+    if (g.damage > 0.01) layers.push(`radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(150,0,0,${(g.damage * 0.75).toFixed(2)}) 100%)`);
+    layers.push('radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.38) 100%)');
+    if (g.zombie > 0) layers.push('linear-gradient(rgba(120,25,10,0.16),rgba(120,25,10,0.16))');
+    this.overlay.style.background = layers.join(',');
   }
 
   render(dt, time) {
@@ -159,7 +185,16 @@ export class Renderer {
     u.uFlash.value = g.flash;
     u.uFlashColor.value.copy(g.flashColor);
     u.uLowHp.value = g.lowHp;
-    this.composer.render(dt);
+    if (this.direct) {
+      const r = this.renderer;
+      r.autoClear = true;
+      r.render(this.scene, this.camera);
+      if (this.vm) { r.autoClear = false; r.clearDepth(); r.render(this.vm.scene, this.vm.camera); r.autoClear = true; }
+      this._cssGrade();
+    } else {
+      if (this.overlay && this._cssKey) { this.overlay.style.background = ''; this._cssKey = ''; }
+      this.composer.render(dt);
+    }
   }
 }
 

@@ -23,7 +23,7 @@ const settings = Object.assign({
 function loadSettings() { try { return JSON.parse(localStorage.getItem('sv-settings') || '{}'); } catch { return {}; } }
 function saveSettings() { try { localStorage.setItem('sv-settings', JSON.stringify(settings)); } catch { /* ignore */ } }
 function guessQuality() {
-  const mobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+  const mobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || matchMedia('(pointer: coarse)').matches;
   return mobile ? 'low' : (navigator.hardwareConcurrency || 4) >= 8 ? 'high' : 'medium';
 }
 if (!settings.name) settings.name = '佣兵' + Math.floor(1000 + Math.random() * 9000);
@@ -222,6 +222,7 @@ function showMenu() {
   $('menu').classList.remove('hidden');
   $('hud').classList.add('hidden');
   if (touchUI) touchUI.classList.add('hidden');
+  document.body.classList.remove('ingame');
   $('pause').classList.add('hidden');
   $('click-to-play').classList.add('hidden');
   input.enabled = false;
@@ -333,6 +334,12 @@ function enterGame() {
   running = true;
   input.enabled = true;
   if (TOUCH) {
+    document.body.classList.add('ingame');
+    // Android: go fullscreen + landscape (iOS Safari ignores both)
+    try {
+      const fs = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+      if (fs && fs.then) fs.then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {})).catch(() => {});
+    } catch { /* unsupported */ }
     if (!touchUI) touchUI = setupTouch(input, () => { paused = true; input.locked = false; $('pause').classList.remove('hidden'); });
     touchUI.classList.remove('hidden');
   }

@@ -6,10 +6,11 @@
   <title>新寂静村 · 生化终结者</title>
   <meta name="description" content="浏览器 3D 多人生化射击：CrossFire 新寂静村（终结者模式）同人复刻" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23201510'/%3E%3Cpath d='M32 8v14M32 42v14M8 32h14M42 32h14' stroke='%23ff9a2a' stroke-width='5'/%3E%3Ccircle cx='32' cy='32' r='4' fill='%23ff4a2a'/%3E%3C/svg%3E" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Rye&family=ZCOOL+QingKe+HuangYou&display=swap" rel="stylesheet" />
+  <link rel="preload" href="./fonts/zcool-title.woff2" as="font" type="font/woff2" crossorigin />
   <style>
+    /* self-hosted fonts (no third-party requests: Google Fonts is unreachable in mainland China and would block rendering) */
+    @font-face { font-family: 'ZCOOL QingKe HuangYou'; src: url('./fonts/zcool-title.woff2') format('woff2'); font-display: swap; }
+    @font-face { font-family: 'Rye'; src: url('./fonts/rye.woff2') format('woff2'); font-display: swap; }
     :root {
       --bg: #120d09; --panel: rgba(24, 18, 13, 0.86); --line: rgba(255, 190, 110, 0.22);
       --accent: #ff9a2a; --accent2: #ffcf6a; --text: #f3e6d0; --muted: #b8a488;
@@ -77,6 +78,13 @@
     #buy .gun span { font-size: 11px; color: var(--muted); }
     #click-to-play { position: fixed; z-index: 20; left: 50%; bottom: 22%; transform: translateX(-50%); padding: 10px 22px; border-radius: 30px; background: rgba(0,0,0,.6); border: 1px solid var(--line); font-size: 15px; letter-spacing: 2px; pointer-events: none; animation: pulse 1.6s infinite; }
     @keyframes pulse { 50% { opacity: .55; } }
+    #fatal { position: fixed; z-index: 100; left: 12px; right: 12px; bottom: 12px; padding: 12px 14px; border-radius: 8px; background: rgba(60,10,6,.94); border: 1px solid #ff6a4a; color: #ffe0d0; font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; max-height: 45vh; overflow: auto; }
+    #fatal button { margin-top: 8px; padding: 6px 14px; border-radius: 6px; border: 1px solid #ffb08a; background: #7a2a14; color: #fff; }
+    #rotate-hint { display: none; position: fixed; inset: 0; z-index: 40; background: rgba(12,8,5,.94); color: var(--accent2); align-items: center; justify-content: center; text-align: center; font-size: 18px; line-height: 1.8; }
+    #rotate-hint .ico-rot { font-size: 46px; }
+    #rotate-hint small { color: var(--muted); font-size: 13px; }
+    @media (orientation: portrait) { body.touch.ingame #rotate-hint { display: flex; } }
+    #fx-overlay { position: fixed; inset: 0; z-index: 5; pointer-events: none; }
     #fps { position: fixed; z-index: 15; right: 8px; bottom: 4px; font: 11px monospace; color: rgba(255,230,190,.5); pointer-events: none; }
     #touch-warn { position: fixed; z-index: 60; inset: auto 12px 12px 12px; padding: 10px 14px; border-radius: 8px; background: rgba(40,20,10,.92); border: 1px solid var(--line); font-size: 13px; }
 
@@ -299,6 +307,22 @@
   <div id="click-to-play" class="hidden">点击画面开始</div>
   <div id="hud" class="hidden"></div>
   <div id="fps"></div>
+  <div id="fatal" class="hidden"></div>
+  <div id="fx-overlay"></div>
+  <div id="rotate-hint"><div><div class="ico-rot">📱↻</div>请把手机横过来游玩<br><small>建议关闭竖排方向锁定</small></div></div>
+  <script>
+    (function () {
+      function show(msg) {
+        var el = document.getElementById('fatal'); if (!el) return;
+        el.classList.remove('hidden');
+        el.textContent = '出错了（请截图反馈）：\n' + msg + '\n\n' + navigator.userAgent;
+        var b = document.createElement('button'); b.textContent = '重新加载'; b.onclick = function () { location.reload(); }; el.appendChild(b);
+      }
+      window.__showFatal = show;
+      window.addEventListener('error', function (e) { if (e.message && !/lock|ResizeObserver/i.test(e.message)) show(e.message + (e.filename ? '\n@ ' + e.filename + ':' + e.lineno : '')); });
+      window.addEventListener('unhandledrejection', function (e) { var m = e.reason && (e.reason.message || String(e.reason)); if (m && !/lock/i.test(m)) show(m); });
+    })();
+  </script>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
